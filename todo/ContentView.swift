@@ -67,12 +67,11 @@ struct ContentView: View {
                     Button(action: {
                         guard !self.currentTodo.isEmpty else { return }
                         newitem.todo = currentTodo
-                        if deadlineon{
-                            if deadline >= Date(){
-                                newitem.istime = dateFormatter.string(from: deadline)
-                                deadline = Date()
-                            } else {deadline = Date()}
-                        }
+                        if deadlineon {
+                                let adjustedDeadline = max(deadline, Date())
+                                newitem.istime = dateFormatter.string(from: adjustedDeadline)
+                            deadline = Date()
+                        } else {deadline = Date()}
                         self.todos.insert(newitem, at: 0)
                         self.currentTodo = ""
                         self.save()

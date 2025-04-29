@@ -39,8 +39,6 @@ struct deleter: View {
         UserDefaults.standard.set(
             try? PropertyListEncoder().encode(self.todos), forKey: "myTodosKey"
         )
-        sortirovkaimportant()
-        sortbytime()
     }
     
     let dateFormatter: DateFormatter = {
@@ -63,24 +61,51 @@ struct deleter: View {
     save()
     }
 
+    private func isEventExpired(_ timeString: String) -> Bool {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd.MM.yyyy"
+        
+        guard let eventDate = dateFormatter.date(from: timeString) else {
+            return false
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        return eventDate < today
+    }
    
     
     var body: some View {
         NavigationView {
+            
+            let hasExpiredTodos = todos.contains { todo in
+                if let time = todo.istime {
+                    return isEventExpired(time)
+                }
+                return false
+            }
             VStack {
-                List {
-                        ForEach(todos.indices, id: \.self) { index in
+                Spacer()
+                if hasExpiredTodos {
+                    List {
+                        ForEach(todos.indices.filter { index in
+                            if let time = todos[index].istime {
+                                return isEventExpired(time)
+                            }
+                            return false
+                        }, id: \.self) { index in
                             
                             HStack {
                                 VStack(alignment: .leading, spacing: 1){
                                     Text(todos[index].todo)
                                         .font(.system(size: 18))
-
+                                    
                                     
                                     if let time = todos[index].istime{
                                         Text(time)
                                             .font(.system(size: 12))
-                                                    .foregroundColor(.gray)
+                                            .foregroundColor(.gray)
                                     }
                                 }
                                 Spacer()
@@ -96,9 +121,41 @@ struct deleter: View {
                             
                         }
                         .onDelete(perform: delete)
+                    }}else {Text("Nothing to delete")
+                            .font(.system(size: 24))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Spacer()
                     }
+                Button(action: {
+                                todos.removeAll { todo in
+                                    if let time = todo.istime {
+                                        return isEventExpired(time)
+                                    }
+                                    return false
+                                }
+                                save()
+                            }) {
+                                Text("Delete all")
+                                    .foregroundColor(
+                                                todos.contains { todo in
+                                                    if let time = todo.istime {
+                                                        return isEventExpired(time)
+                                                    }
+                                                    return false
+                                                } ? .red : .gray
+                                            )
+                            }
+                            .disabled(
+                                !todos.contains { todo in
+                                    if let time = todo.istime {
+                                        return isEventExpired(time)
+                                    }
+                                    return false
+                                }
+                            )
+                
             }
-            .navigationBarTitle("Upcoming events")
+            .navigationBarTitle("Past date")
         }.onAppear(perform: load)
             .onAppear(perform: save)
     }
@@ -106,5 +163,5 @@ struct deleter: View {
 
 
 #Preview {
-    time()
+    deleter()
 }
