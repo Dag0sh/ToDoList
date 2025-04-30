@@ -21,18 +21,23 @@ struct time: View {
     }
     
     private func sortbytime(){
-        self.todos.sort{item1, item2 in
-            if let date1 = item1.istime, let date2 = item2.istime {
-                return date1 < date2
-            }
-            if item1.istime != nil && item2.istime == nil {
-                return true
-            }
-            if item1.istime == nil && item2.istime != nil {
+        let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "dd MMM yyyy"
+            
+            self.todos.sort { item1, item2 in
+                if let dateString1 = item1.istime, let dateString2 = item2.istime {
+                    if let date1 = dateFormatter.date(from: dateString1), let date2 = dateFormatter.date(from: dateString2) {
+                        return date1 < date2
+                    }
+                }
+                if item1.istime != nil && item2.istime == nil {
+                    return true
+                }
+                if item1.istime == nil && item2.istime != nil {
+                    return false
+                }
                 return false
             }
-            return false
-        }
     }
     
     private func save() {
