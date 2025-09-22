@@ -2,8 +2,8 @@ import Foundation
 
 struct Item: Identifiable, Codable {
     let id = UUID()
-    var todo: String
-    var starstate: Bool
-    var istime: String?
-    
+    var toDo: String
+    var starState: Bool
+    var deadline: String?
+    var createTime: Date
 }

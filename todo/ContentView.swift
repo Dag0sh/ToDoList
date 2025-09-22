@@ -1,89 +1,56 @@
+import Foundation
 import SwiftUI
 
 struct ContentView: View {
     @State private var currentTodo = ""
-    @State private var todos: [Item] = []
-    @State private var starstate = false
+    @State private var toDos: [Item] = []
+    @State private var starState = false
     @State private var deadline = Date()
-    @State private var deadlineon: Bool = false
-    
-    
-    
-    private func sortirovkaimportant(){
-        self.todos.sort {$0.starstate && !$1.starstate}
-    }
-    
-    private func sortbytime(){
-        self.todos.sort{item1, item2 in
-            if let date1 = item1.istime, let date2 = item2.istime {
-                return date1 < date2
-            }
-            if item1.istime != nil && item2.istime == nil {
-                return true
-            }
-            if item1.istime == nil && item2.istime != nil {
-                return false
-            }
-            return false
-        }
-    }
-    
-    private func save() {
-        UserDefaults.standard.set(
-            try? PropertyListEncoder().encode(self.todos), forKey: "myTodosKey"
-        )
-    }
-    
-    let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter
-    }()
-    
-    private func load() {
-        if let todosData = UserDefaults.standard.value(forKey: "myTodosKey") as? Data {
-            if let todosList
-                = try? PropertyListDecoder().decode(Array<Item>.self, from: todosData) {
-                self.todos = todosList
-            }
-        }
-    }
-    
-    private func delete(at offset: IndexSet) {
-    self.todos.remove(atOffsets: offset)
-    save()
+    @State private var deadlineOn: Bool = false
+
+    enum sortState: String {
+        case recent = "Recent calls"
+        case importance = "Important tasks"
+        case nearestDeadline = "Nearest deadline"
+
     }
 
-   
-    
+    @State private var sortBy: sortState = .recent
+
     var body: some View {
         NavigationView {
             VStack {
-                VStack{
-                    var newitem = Item(todo: "", starstate: false)
-                HStack {
-                    TextField("New todo..", text: $currentTodo)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    Button(action: {
-                        guard !self.currentTodo.isEmpty else { return }
-                        newitem.todo = currentTodo
-                        if deadlineon {
+                VStack {
+                    var newitem = Item(
+                        toDo: "",
+                        starState: false,
+                        createTime: Date.now
+                    )
+                    HStack {
+                        TextField("New toDo..", text: $currentTodo)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        Button(action: {
+                            guard !self.currentTodo.isEmpty else { return }
+                            newitem.toDo = currentTodo
+                            if deadlineOn {
                                 let adjustedDeadline = max(deadline, Date())
-                                newitem.istime = dateFormatter.string(from: adjustedDeadline)
-                            deadline = Date()
-                        } else {deadline = Date()}
-                        self.todos.insert(newitem, at: 0)
-                        self.currentTodo = ""
-                        self.save()
-                    }) {
-                        Image(systemName: "plus.app")
-                    }.disabled(currentTodo.isEmpty)
-                    
-                    .padding(.leading, 5)
-                }
-                    Toggle("Enable deadline", isOn: $deadlineon)
+                                newitem.deadline = dateFormatter.string(
+                                    from: adjustedDeadline
+                                )
+                                deadline = Date()
+                            }
+                            self.toDos.insert(newitem, at: 0)
+                            self.currentTodo = ""
+                            self.save()
+                        }) {
+                            Image(systemName: "plus.app")
+                        }.disabled(currentTodo.isEmpty)
+
+                            .padding(.leading, 5)
+                    }
+                    Toggle("Enable deadline", isOn: $deadlineOn)
                         .padding()
-                    if deadlineon {
+                    if deadlineOn {
                         DatePicker(
                             "Выберите дедлайн",
                             selection: $deadline,
@@ -95,48 +62,172 @@ struct ContentView: View {
                     }
                 }.padding()
                 List {
-                    Section(header: Text("Recent Calls").font(.headline).padding(.top, 0)){
-                        ForEach(todos.indices, id: \.self) { index in
+                    Section(
+                        header:
                             HStack {
-                                VStack(alignment: .leading, spacing: 1){
-                                    Text(todos[index].todo)
+                                            Text(sortBy.rawValue)
+                                                .font(.headline)
+                                            
+                                            Spacer()
+                                            
+                                            HStack(spacing: 8) {
+                                                Button(action: {
+                                                    sortBy = .nearestDeadline
+                                                    save()
+                                                }) {
+                                                    Text("d")
+                                                        .font(.system(size: 14, weight: .bold))
+                                                        .foregroundColor(sortBy == .nearestDeadline ? .blue : .gray)
+                                                }
+                                                
+                                                Text("|")
+                                                    .foregroundColor(.gray)
+                                                
+                                                Button(action: {
+                                                    sortBy = .importance
+                                                    save()
+                                                }) {
+                                                    Text("I")
+                                                        .font(.system(size: 14, weight: .bold))
+                                                        .foregroundColor(sortBy == .importance ? .blue : .gray)
+                                                }
+                                                
+                                                Text("|")
+                                                    .foregroundColor(.gray)
+                                                
+                                                Button(action: {
+                                                    sortBy = .recent
+                                                    save()
+                                                }) {
+                                                    Text("r")
+                                                        .font(.system(size: 14, weight: .bold))
+                                                        .foregroundColor(sortBy == .recent ? .blue : .gray)
+                                                }
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.gray.opacity(0.1))
+                                            .cornerRadius(6)
+                                        }
+                                        .padding(.top, 0)
+                                
+                                
+                    ) {
+                        ForEach(toDos.indices, id: \.self) { index in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(toDos[index].toDo)
                                         .font(.system(size: 18))
 
-                                    
-                                    if let time = todos[index].istime{
- 
-                                        let date = dateFormatter.date(from: time) ?? Date()
-                                        
+                                    if let time = toDos[index].deadline {
+
+                                        let date =
+                                            dateFormatter.date(from: time)
+                                            ?? Date()
+
                                         Text(time)
                                             .foregroundColor(
-                                                Calendar.current.isDate(date, inSameDayAs: Date()) ? .gray :
-                                                    (date < Date() ? .red : .gray)
+                                                Calendar.current.isDate(
+                                                    date,
+                                                    inSameDayAs: Date()
+                                                )
+                                                    ? .gray
+                                                    : (date < Date()
+                                                        ? .red : .gray)
                                             )
                                     }
                                 }
                                 Spacer()
-                                
+
                                 Button(action: {
-                                    todos[index].starstate.toggle()
+                                    toDos[index].starState.toggle()
                                     self.save()
                                 }) {
-                                    Image(systemName: todos[index].starstate ? "star.fill" : "star")
-                                        .foregroundColor(todos[index].starstate ? .yellow : .gray)
+                                    Image(
+                                        systemName: toDos[index].starState
+                                            ? "star.fill" : "star"
+                                    )
+                                    .foregroundColor(
+                                        toDos[index].starState ? .yellow : .gray
+                                    )
                                 }
                             }
-                            
+
                         }
                         .onDelete(perform: delete)
-                    }}
+                    }
+                }
             }
-            .navigationBarTitle("Todo List")
+            .navigationBarTitle("toDo List")
         }.onAppear(perform: load)
     }
-}
 
+    private func sortByRecent() {
+        self.toDos.sort {
+            return $0.createTime > $1.createTime
+        }
+    }
+
+    private func sortByImportance() {
+        self.toDos.sort { $0.starState && !$1.starState }
+    }
+
+    private func sortByDeadline() {
+        sortByImportance()
+        self.toDos.sort { item1, item2 in
+            if let date1 = item1.deadline, let date2 = item2.deadline {
+                return date1 < date2
+            }
+            if item1.deadline != nil && item2.deadline == nil {
+                return true
+            }
+            if item1.deadline == nil && item2.deadline != nil {
+                return false
+            }
+            return false
+        }
+    }
+
+    private func save() {
+        UserDefaults.standard.set(
+            try? PropertyListEncoder().encode(self.toDos),
+            forKey: "mytoDosKey"
+        )
+        switch sortBy {
+        case .recent:
+            sortByRecent()
+        case .importance:
+            sortByImportance()
+        case .nearestDeadline:
+            sortByDeadline()
+        }
+    }
+
+    let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter
+    }()
+
+    private func load() {
+        if let toDosData = UserDefaults.standard.value(forKey: "mytoDosKey")
+            as? Data
+        {
+            if let toDosList = try? PropertyListDecoder().decode(
+                Array<Item>.self,
+                from: toDosData
+            ) {
+                self.toDos = toDosList
+            }
+        }
+    }
+
+    private func delete(at offset: IndexSet) {
+        self.toDos.remove(atOffsets: offset)
+        save()
+    }
+}
 
 #Preview {
     ContentView()
 }
-
-
