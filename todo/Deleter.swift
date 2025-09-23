@@ -23,58 +23,55 @@ struct ExpiredTasksView: View {
     var body: some View {
         NavigationView {
 
-            let hasExpiredTodos = todos.contains { todo in
-                if let time = todo.deadline {
-                    return isExpired(time)
-                }
-                return false
-            }
             VStack {
+                Text(" ")
                 Spacer()
-                if hasExpiredTodos {
+                if todos.contains(where: { $0.deadlineStatus }) {
                     List {
-                        ForEach(
-                            todos.filter { todo in
-                                if let time = todo.deadline {
-                                    return isExpired(time)
-                                }
-                                return false
-                            },
-                            id: \.id
-                        ) { todo in
+                        Section(
+                            header:
+                                Text("No time left😔")
+                                .font(.headline)
+                        ) {
+                            ForEach(
+                                todos.filter { $0.deadlineStatus },
+                                id: \.id
+                            ) { todo in
 
-                            HStack {
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(todo.toDo)
-                                        .font(.system(size: 18))
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(todo.toDo)
+                                            .font(.system(size: 18))
 
-                                    if let time = todo.deadline {
-                                        Text(time)
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.gray)
+                                        if let time = todo.deadline {
+                                            Text(time)
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.gray)
+                                        }
                                     }
-                                }
-                                Spacer()
+                                    Spacer()
 
-                                Button(action: {
-                                    if let i = todos.firstIndex(where: {
-                                        $0.id == todo.id
+                                    Button(action: {
+                                        if let i = todos.firstIndex(where: {
+                                            $0.id == todo.id
+                                        }) {
+                                            todos[i].starState.toggle()
+                                            save()
+                                        }
                                     }) {
-                                        todos[i].starState.toggle()
-                                        save()
+                                        Image(
+                                            systemName: todo.starState
+                                                ? "star.fill" : "star"
+                                        )
+                                        .foregroundColor(
+                                            todo.starState ? .yellow : .gray
+                                        )
                                     }
-                                }) {
-                                    Image(
-                                        systemName: todo.starState
-                                            ? "star.fill" : "star"
-                                    )
-                                    .foregroundColor(
-                                        todo.starState ? .yellow : .gray
-                                    )
                                 }
                             }
+
+                            .onDelete(perform: delete)
                         }
-                        .onDelete(perform: delete)
                     }
                 } else {
                     Text("Nothing to delete")
@@ -83,48 +80,50 @@ struct ExpiredTasksView: View {
                     Spacer()
                 }
                 Button(action: {
-                    todos.removeAll { todo in
-                        if let time = todo.deadline {
-                            return isExpired(time)
-                        }
-                        return false
-                    }
+                    todos.removeAll { $0.deadlineStatus }
                     save()
                 }) {
                     Text("Delete all")
                         .foregroundColor(
-                            todos.contains { todo in
-                                if let time = todo.deadline {
-                                    return isExpired(time)
-                                }
-                                return false
-                            } ? .red : .gray
+                            todos.contains(where: { $0.deadlineStatus })
+                                ? .red : .gray
                         )
                 }
-                .disabled(
-                    !todos.contains { todo in
-                        if let time = todo.deadline {
-                            return isExpired(time)
-                        }
-                        return false
-                    }
-                )
+                .disabled(!todos.contains(where: { $0.deadlineStatus }))
 
             }
-            .navigationBarTitle("Past date")
+            .navigationBarTitle("Past date", displayMode: .large)
         }.onAppear(perform: load)
-            .onAppear(perform: save)
+            .onAppear(perform: updateDeadlineStatuses)
+    }
+
+    private func updateDeadlineStatuses() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        for index in todos.indices {
+            if let deadlineString = todos[index].deadline,
+                let deadlineDate = dateFormatter.date(from: deadlineString)
+            {
+                let normalizedDeadlineDate = calendar.startOfDay(
+                    for: deadlineDate
+                )
+                todos[index].deadlineStatus = normalizedDeadlineDate < today
+            } else {
+                todos[index].deadlineStatus = false
+            }
+        }
     }
 
     private func save() {
         UserDefaults.standard.set(
             try? PropertyListEncoder().encode(self.todos),
-            forKey: "myTodosKey"
+            forKey: "mytoDosKey"
         )
     }
 
     private func load() {
-        if let todosData = UserDefaults.standard.value(forKey: "myTodosKey")
+        if let todosData = UserDefaults.standard.value(forKey: "mytoDosKey")
             as? Data
         {
             if let todosList = try? PropertyListDecoder().decode(
@@ -139,19 +138,5 @@ struct ExpiredTasksView: View {
     private func delete(at offset: IndexSet) {
         self.todos.remove(atOffsets: offset)
         save()
-    }
-
-    private func isExpired(_ timeString: String) -> Bool {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd.MM.yyyy"
-
-        guard let eventDate = dateFormatter.date(from: timeString) else {
-            return false
-        }
-
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-
-        return eventDate < today
     }
 }

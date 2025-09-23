@@ -15,6 +15,12 @@ struct ContentView: View {
 
     }
 
+    let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter
+    }()
+
     @State private var sortBy: sortState = .recent
 
     var body: some View {
@@ -24,6 +30,7 @@ struct ContentView: View {
                     var newitem = Item(
                         toDo: "",
                         starState: false,
+                        deadlineStatus: false,
                         createTime: Date.now
                     )
                     HStack {
@@ -65,53 +72,67 @@ struct ContentView: View {
                     Section(
                         header:
                             HStack {
-                                            Text(sortBy.rawValue)
-                                                .font(.headline)
-                                            
-                                            Spacer()
-                                            
-                                            HStack(spacing: 8) {
-                                                Button(action: {
-                                                    sortBy = .nearestDeadline
-                                                    save()
-                                                }) {
-                                                    Text("d")
-                                                        .font(.system(size: 14, weight: .bold))
-                                                        .foregroundColor(sortBy == .nearestDeadline ? .blue : .gray)
-                                                }
-                                                
-                                                Text("|")
-                                                    .foregroundColor(.gray)
-                                                
-                                                Button(action: {
-                                                    sortBy = .importance
-                                                    save()
-                                                }) {
-                                                    Text("I")
-                                                        .font(.system(size: 14, weight: .bold))
-                                                        .foregroundColor(sortBy == .importance ? .blue : .gray)
-                                                }
-                                                
-                                                Text("|")
-                                                    .foregroundColor(.gray)
-                                                
-                                                Button(action: {
-                                                    sortBy = .recent
-                                                    save()
-                                                }) {
-                                                    Text("r")
-                                                        .font(.system(size: 14, weight: .bold))
-                                                        .foregroundColor(sortBy == .recent ? .blue : .gray)
-                                                }
-                                            }
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.gray.opacity(0.1))
-                                            .cornerRadius(6)
-                                        }
-                                        .padding(.top, 0)
-                                
-                                
+                                Text(sortBy.rawValue)
+                                    .font(.headline)
+
+                                Spacer()
+
+                                HStack(spacing: 8) {
+                                    Button(action: {
+                                        sortBy = .nearestDeadline
+                                        save()
+                                    }) {
+                                        Text("d")
+                                            .font(
+                                                .system(size: 14, weight: .bold)
+                                            )
+                                            .foregroundColor(
+                                                sortBy == .nearestDeadline
+                                                    ? .blue : .gray
+                                            )
+                                    }
+
+                                    Text("|")
+                                        .foregroundColor(.gray)
+
+                                    Button(action: {
+                                        sortBy = .importance
+                                        save()
+                                    }) {
+                                        Text("I")
+                                            .font(
+                                                .system(size: 14, weight: .bold)
+                                            )
+                                            .foregroundColor(
+                                                sortBy == .importance
+                                                    ? .blue : .gray
+                                            )
+                                    }
+
+                                    Text("|")
+                                        .foregroundColor(.gray)
+
+                                    Button(action: {
+                                        sortBy = .recent
+                                        save()
+                                    }) {
+                                        Text("r")
+                                            .font(
+                                                .system(size: 14, weight: .bold)
+                                            )
+                                            .foregroundColor(
+                                                sortBy == .recent
+                                                    ? .blue : .gray
+                                            )
+                                    }
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            .padding(.top, 0)
+
                     ) {
                         ForEach(toDos.indices, id: \.self) { index in
                             HStack {
@@ -155,11 +176,31 @@ struct ContentView: View {
 
                         }
                         .onDelete(perform: delete)
+
                     }
                 }
             }
-            .navigationBarTitle("toDo List")
+            .navigationBarTitle("toDo List", displayMode: .large)
         }.onAppear(perform: load)
+            .onAppear(perform: updateDeadlineStatuses)
+    }
+
+    private func updateDeadlineStatuses() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        for index in toDos.indices {
+            if let deadlineString = toDos[index].deadline,
+                let deadlineDate = dateFormatter.date(from: deadlineString)
+            {
+                let normalizedDeadlineDate = calendar.startOfDay(
+                    for: deadlineDate
+                )
+                toDos[index].deadlineStatus = normalizedDeadlineDate < today
+            } else {
+                toDos[index].deadlineStatus = false
+            }
+        }
     }
 
     private func sortByRecent() {
@@ -175,16 +216,23 @@ struct ContentView: View {
     private func sortByDeadline() {
         sortByImportance()
         self.toDos.sort { item1, item2 in
-            if let date1 = item1.deadline, let date2 = item2.deadline {
-                return date1 < date2
-            }
-            if item1.deadline != nil && item2.deadline == nil {
+            switch (item1.deadlineStatus, item2.deadlineStatus){
+            case (true, false):
+                return false
+            case (false, true):
                 return true
-            }
-            if item1.deadline == nil && item2.deadline != nil {
+            default:
+                if let date1 = item1.deadline, let date2 = item2.deadline {
+                    return date1 < date2
+                }
+                if item1.deadline != nil && item2.deadline == nil {
+                    return true
+                }
+                if item1.deadline == nil && item2.deadline != nil {
+                    return false
+                }
                 return false
             }
-            return false
         }
     }
 
@@ -193,6 +241,7 @@ struct ContentView: View {
             try? PropertyListEncoder().encode(self.toDos),
             forKey: "mytoDosKey"
         )
+        updateDeadlineStatuses()
         switch sortBy {
         case .recent:
             sortByRecent()
@@ -202,12 +251,6 @@ struct ContentView: View {
             sortByDeadline()
         }
     }
-
-    let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter
-    }()
 
     private func load() {
         if let toDosData = UserDefaults.standard.value(forKey: "mytoDosKey")
@@ -220,12 +263,14 @@ struct ContentView: View {
                 self.toDos = toDosList
             }
         }
+        
     }
 
     private func delete(at offset: IndexSet) {
         self.toDos.remove(atOffsets: offset)
         save()
     }
+
 }
 
 #Preview {
