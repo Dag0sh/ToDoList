@@ -215,14 +215,18 @@ struct ContentView: View {
 
     private func sortByDeadline() {
         sortByImportance()
+        
         self.toDos.sort { item1, item2 in
-            switch (item1.deadlineStatus, item2.deadlineStatus){
+            switch (item1.deadlineStatus, item2.deadlineStatus) {
             case (true, false):
                 return false
             case (false, true):
                 return true
             default:
-                if let date1 = item1.deadline, let date2 = item2.deadline {
+                if let date1 = item1.deadline, let date2 = item2.deadline,
+                    let date1 = dateFormatter.date(from: date1),
+                    let date2 = dateFormatter.date(from: date2)
+                {
                     return date1 < date2
                 }
                 if item1.deadline != nil && item2.deadline == nil {
@@ -263,7 +267,7 @@ struct ContentView: View {
                 self.toDos = toDosList
             }
         }
-        
+
     }
 
     private func delete(at offset: IndexSet) {
