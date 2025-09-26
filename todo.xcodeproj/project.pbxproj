@@ -10,9 +10,22 @@
 		33A490F12DB1A0650039E36C /* todo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = todo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		335869CE2E85E03100CF8861 /* Exceptions for "todo" folder in "todo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 33A490F02DB1A0650039E36C /* todo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		33A490F32DB1A0650039E36C /* todo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				335869CE2E85E03100CF8861 /* Exceptions for "todo" folder in "todo" target */,
+			);
 			path = todo;
 			sourceTree = "<group>";
 		};
@@ -254,7 +267,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"todo/Preview Content\"";
 				DEVELOPMENT_TEAM = HD6DSRSZ9D;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = todo/info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -296,7 +310,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"todo/Preview Content\"";
 				DEVELOPMENT_TEAM = HD6DSRSZ9D;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = todo/info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
