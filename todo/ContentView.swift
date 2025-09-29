@@ -7,6 +7,10 @@ struct ContentView: View {
     @State private var starState = false
     @State private var deadline = Date()
     @State private var deadlineOn: Bool = false
+    @State private var editingItem: Item? = nil
+    @State private var editedText: String = ""
+    @State private var editedDeadline: Date = Date()
+    @State private var editedHasDeadline: Bool = false
 
     enum sortState: String {
         case recent = "Recent calls"
@@ -172,15 +176,81 @@ struct ContentView: View {
                                         toDos[index].starState ? .yellow : .gray
                                     )
                                 }
+                            }.swipeActions(edge: .trailing) {
+
+                                Button(role: .destructive) {
+                                    delete(at: IndexSet(integer: index))
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+
+                                Button {
+                                    editedText = toDos[index].toDo
+                                    if let deadlineString = toDos[index]
+                                        .deadline,
+                                        let date = dateFormatter.date(
+                                            from: deadlineString
+                                        )
+                                    {
+                                        editedDeadline = date < Date() ? Date() : date
+                                        editedHasDeadline = true
+                                    } else {
+                                        editedDeadline = Date()
+                                        editedHasDeadline = false
+                                    }
+                                    editingItem = toDos[index]
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.green)
                             }
-
                         }
-                        .onDelete(perform: delete)
-
                     }
                 }
             }
             .navigationBarTitle("toDo List", displayMode: .large)
+            .sheet(item: $editingItem) { item in
+                NavigationView {
+                    Form {
+                        Section(header: Text("Task")) {
+                            TextField("Task", text: $editedText)
+                        }
+                        Section(header: Text("Deadline")) {
+                            Toggle("Enable deadline", isOn: $editedHasDeadline)
+
+                            if editedHasDeadline {
+                                DatePicker(
+                                    "Select deadline",
+                                    selection: $editedDeadline,
+                                    in: Date()...,
+                                    displayedComponents: [.date]
+                                )
+                            }
+                        }
+                    }.navigationBarTitle("Edit Task", displayMode: .large)
+                        .navigationBarItems(
+                            leading: Button("Cancel") {
+                                editingItem = nil
+                            },
+                            trailing: Button("Save") {
+                                saveEditedItem()
+                                editingItem = nil
+                            }
+                            .disabled(editedText.isEmpty)
+                        )
+                }
+                .navigationBarTitle("Edit Task", displayMode: .large)
+                .navigationBarItems(
+                    leading: Button("Cancel") {
+                        editingItem = nil
+                    },
+                    trailing: Button("Save") {
+                        saveEditedItem()
+                        editingItem = nil
+                    }
+                    .disabled(editedText.isEmpty)
+                )
+            }
         }.onAppear(perform: load)
             .onAppear(perform: updateDeadlineStatuses)
     }
@@ -203,6 +273,21 @@ struct ContentView: View {
         }
     }
 
+    private func saveEditedItem() {
+        guard let editingItem = editingItem,
+            let index = toDos.firstIndex(where: { $0.id == editingItem.id })
+        else { return }
+
+        toDos[index].toDo = editedText
+        if editedHasDeadline {
+            toDos[index].deadline = dateFormatter.string(from: editedDeadline)
+        } else {
+            toDos[index].deadline = nil
+        }
+
+        save()
+    }
+
     private func sortByRecent() {
         self.toDos.sort {
             return $0.createTime > $1.createTime
@@ -215,7 +300,7 @@ struct ContentView: View {
 
     private func sortByDeadline() {
         sortByImportance()
-        
+
         self.toDos.sort { item1, item2 in
             switch (item1.deadlineStatus, item2.deadlineStatus) {
             case (true, false):
